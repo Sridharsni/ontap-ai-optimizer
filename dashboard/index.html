@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ONTAP Volume Dashboard</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    
+    .bar { fill: steelblue; }
+    .bar:hover { fill: orange; }
+    .label { font: 12px sans-serif; fill: #333; }
+    text { font: 12px sans-serif; }
+  </style>
+</head>
+<body>
+  <h2>ONTAP Volume Usage</h2>
+  <svg width="600" height="300"></svg>
+
+  <script>
+    fetch("http://localhost:8000/api/storage/volumes")
+      .then(res => res.json())
+      .then(data => {
+        const volumes = data.records;
+        const svg = d3.select("svg");
+        const margin = {top: 20, right: 20, bottom: 30, left: 50};
+        const width = +svg.attr("width") - margin.left - margin.right;
+        const height = +svg.attr("height") - margin.top - margin.bottom;
+
+        const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleBand()
+                    .domain(volumes.map(d => d.name))
+                    .rangeRound([0, width])
+                    .padding(0.1);
+
+        const y = d3.scaleLinear()
+                    .domain([0, d3.max(volumes, d => d.size / (1024 ** 3))])
+                    .rangeRound([height, 0]);
+
+        g.append("g")
+          .attr("class", "axis axis--x")
+          .attr("transform", `translate(0,${height})`)
+          .call(d3.axisBottom(x));
+
+        g.append("g")
+          .attr("class", "axis axis--y")
+          .call(d3.axisLeft(y).ticks(5))
+          .append("text")
+          .attr("fill", "#000")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -40)
+          .attr("dy", "0.71em")
+          .attr("text-anchor", "end")
+          .text("Size (GB)");
+
+        g.selectAll(".bar")
+          .data(volumes)
+          .enter().append("rect")
+          .attr("class", "bar")
+          .attr("x", d => x(d.name))
+          .attr("y", d => y(d.size / (1024 ** 3)))
+          .attr("width", x.bandwidth())
+          .attr("height", d => height - y(d.size / (1024 ** 3)))
+          .attr("fill", d => {
+            const gb = d.size / (1024 ** 3);
+            if (gb > 3) return "red";
+            if (gb > 1.5) return "orange";
+            return "steelblue";
+          });
+
+        g.selectAll(".label")
+          .data(volumes)
+          .enter().append("text")
+          .attr("class", "label")
+          .attr("x", d => x(d.name) + x.bandwidth() / 2)
+          .attr("y", d => y(d.size / (1024 ** 3)) - 5)
+          .attr("text-anchor", "middle")
+          .text(d => (d.size / (1024 ** 3)).toFixed(2) + " GB");
+      })
+      .catch(error => {
+        console.error("Failed to load volume data:", error);
+      });
+  </script>
+</body>
+</html>
