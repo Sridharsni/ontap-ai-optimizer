@@ -1,79 +1,118 @@
-# ONTAP AI Optimizer
+# AI-Powered Cloud Storage Optimization System
 
-A cloud-based intelligent storage optimization system that integrates a FastAPI backend, AI-powered volume expansion logic, and a D3.js dashboard to visualize ONTAP storage volumes in real time.
-
----
-
-## 📌 Overview
-
-This project demonstrates how predictive algorithms and visual insights can help manage and scale ONTAP volumes efficiently. It simulates real-world ONTAP behavior through mock APIs and offers a dashboard to monitor volume size trends.
-
-### 🔧 Key Components
-- **FastAPI server** exposing mock ONTAP APIs
-- **Lambda-style function** to auto-expand volumes based on usage
-- **D3.js dashboard** for real-time visualization
+This project demonstrates how to build an **AI-driven cloud storage optimization platform** that integrates **ONTAP** (mocked via FastAPI), Kubernetes, and a D3.js dashboard for real-time monitoring.
 
 ---
 
-## 🗂 Project Structure
+## Overview
 
-ontap-ai-optimizer/ ├── ai_model/ │ ├── model.pkl │ ├── storage_data.csv │ └── train_model.py ├── dashboard/ │ └── index.html ├── docker/ │ └── Dockerfile ├── kubernetes/ │ └── pod_balancer.py ├── lambda_functions/ │ └── trigger_expand.py ├── ontap_api/ │ ├── mock_ontap_api.py │ └── ontap_client.py ├── requirements.txt └── README.md
-
+- **AI-Driven Predictive Algorithms**: Uses Python (and optionally C++) to forecast storage demands and expand volumes accordingly.  
+- **Kubernetes Orchestration**: Ensures automated workload balancing, high availability, and fault tolerance.  
+- **Real-Time Dashboards**: D3.js for visualizing volume usage; can be extended with Grafana.  
+- **ONTAP & AWS Lambda**: Simulated ONTAP with FastAPI, plus a Lambda-style trigger script for automated expansion logic.
 
 ---
 
-## 🚀 Getting Started
+## Key Features
 
-### 1. Clone the Repository
+1. **AI Predictive Model**  
+   - `ai_model/train_model.py` trains a model to predict future usage.
+   - The system can automatically expand volumes when usage crosses thresholds.
 
+2. **Mock ONTAP API**  
+   - Located in `ontap_api/mock_ontap_api.py`.
+   - Provides routes like `/api/storage/volumes` for volume details.
+   - Supports volume expansion via a `PATCH` route.
+
+3. **Kubernetes Deployment**  
+   - `kubernetes/api-deployment.yaml` & `kubernetes/dashboard-deployment.yaml` define how containers are deployed in K8s.
+   - Exposes services via **NodePort** for local testing.
+
+4. **D3.js Dashboard**  
+   - `dashboard/index.html` fetches volume data from the mock ONTAP API.
+   - Displays bar charts of usage (in GB), color-coded by threshold.
+
+5. **Docker Containers**  
+   - `docker/Dockerfile.api`: Builds the FastAPI-based mock ONTAP service.  
+   - `docker/Dockerfile.dashboard`: Builds a simple static server for `index.html`.
+
+6. **Lambda-style Trigger**  
+   - `lambda_functions/trigger_expand.py` simulates usage events and calls the ONTAP API to expand volumes automatically.
+
+---
+
+## Architecture Diagram (Optional)
+        ┌────────────────┐
+        │ D3.js Dashboard│
+        │ (dashboard/)   │
+        └───────▲────────┘
+                │
+      NodePort   │   NodePort
+                │
+        ┌───────┴─────────┐
+        │ Docker + K8s     │
+        │ (ontap-dashboard)│
+        └────────┬─────────┘
+                 │
+                 │
+        ┌────────┴─────────┐
+        │ Mock ONTAP API    │
+        │ (FastAPI)         │
+        └────────┬──────────┘
+                 │
+                 ▼
+   [ AI Model + Lambda Trigger ]
+            (Python/C++)
+
+---
+
+## Getting Started
+
+### 1. Clone the Repository & Install Requirements
 ```bash
-git clone https://github.com/Sridharsni/ontap-ai-optimizer.git
+git clone https://github.com/your-username/ontap-ai-optimizer.git
 cd ontap-ai-optimizer
-2. Create and Activate a Virtual Environment
 python3 -m venv venv
 source venv/bin/activate
-3. Install Dependencies
 pip install -r requirements.txt
-4. Start the FastAPI Server
+2. Run the Mock ONTAP API & Dashboard Locally (Optional)
+API:
 uvicorn ontap_api.mock_ontap_api:app --reload --port 8000
-5. Serve the D3.js Dashboard
-In a new terminal window:
-
+Dashboard:
 python3 -m http.server 8080
-Then open your browser and visit:
+Open:
 
-http://localhost:8080/dashboard/index.html
-6. Run the Volume Expansion Trigger Script
-python lambda_functions/trigger_expand.py
-📊 Dashboard Preview
+http://localhost:8000/api/storage/volumes for the API
+http://localhost:8080/index.html for the D3.js dashboard
+Docker & Kubernetes
 
-The dashboard displays ONTAP volume usage in a bar chart with the following color indicators:
+A. Build Docker Images
+docker build -t youruser/ontap-api:latest -f docker/Dockerfile.api .
+docker build -t youruser/ontap-dashboard:latest -f docker/Dockerfile.dashboard .
+B. Push to Docker Hub (optional)
+docker push youruser/ontap-api:latest
+docker push youruser/ontap-dashboard:latest
+C. Deploy to Kubernetes
+kubectl apply -f kubernetes/api-deployment.yaml
+kubectl apply -f kubernetes/dashboard-deployment.yaml
+Check:
 
-Steelblue → Normal usage
-Orange → Near threshold
-Red → Critical (expansion triggered)
-Each bar includes a label showing the volume size in GB.
+kubectl get pods
+kubectl get services
+Access the NodePort for each service to view your API and dashboard.
 
-🧰 Technologies Used
+Usage
 
-Python — Core language
-FastAPI — API backend for ONTAP simulation
-D3.js — Interactive frontend visualizations
-Docker & Kubernetes — For containerization and orchestration (optional)
-AWS Lambda-style Logic — For storage expansion simulation
-🧠 AI-Powered Logic
+AI Model: Under ai_model/train_model.py, a sample approach to train or simulate usage predictions.
+Trigger Script: lambda_functions/trigger_expand.py can simulate spikes and trigger expansions on the mock ONTAP API.
+Dashboard: Real-time bar charts for volume usage in dashboard/index.html.
+Kubernetes: Orchestrates containers for reliability, optionally scaled out with more replicas.
+Future Enhancements
 
-The AI trigger script reads usage input and automatically expands volumes if usage exceeds a threshold (e.g., 80%). It interacts with the mock ONTAP API and simulates volume growth dynamically.
+Integrate a real ONTAP simulator or NetApp Trident driver for actual storage volumes.
+Grafana integration for advanced metrics and alerting.
+Autoscaling your pods with a Horizontal Pod Autoscaler (HPA).
+Complete the AI logic in Python or C++ for truly predictive volume expansions.
+License
 
-📝 Notes
-
-.gitignore excludes virtual environments, cache files, and large binaries.
-CORS is enabled to allow communication between the FastAPI server and the dashboard.
-Avoid pushing large virtual environment files or ML binaries to GitHub.
-📄 License
-
-This project is open-source and available under the MIT License.
-
-💡 Inspiration
-
-This project was built to simulate intelligent cloud storage management, combining real-time insights and automation — perfect for infrastructure engineers, DevOps teams, or students exploring smart backend systems.
+This project is licensed under the MIT License.
