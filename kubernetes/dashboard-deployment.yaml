@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ontap-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ontap-dashboard
+  template:
+    metadata:
+      labels:
+        app: ontap-dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: dharshu01/ontap-dashboard:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 80
