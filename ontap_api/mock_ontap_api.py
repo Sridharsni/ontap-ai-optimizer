@@ -1,37 +1,53 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware  # ✅ ADD THIS
+# main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from datetime import datetime, date
+import pandas as pd
 
 app = FastAPI()
 
-# ✅ CORS Setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # or ["*"] to allow all
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dummy in-memory volume DB
-db = {
-    "volumes": [
-        {"uuid": "vol-1", "name": "volume1", "size": 1000000000},
-        {"uuid": "vol-2", "name": "volume2", "size": 2000000000}
-    ]
+class VolumeExpansionRequest(BaseModel):
+    volume_id: str
+    size_to_add: int
+
+volume_state = {
+    "vol-001": {
+        "total_gb": 150,
+        "last_expansion_day": None,
+        "expansion_history": []
+    }
 }
 
-class VolumeUpdate(BaseModel):
-    size: int
+@app.post("/expand_volume")
+def expand_volume(req: VolumeExpansionRequest):
+    vol = volume_state.get(req.volume_id)
+    today = datetime.now().date()
 
-@app.get("/api/storage/volumes")
-def get_volumes():
-    return {"records": db["volumes"]}
+    if vol["last_expansion_day"] == today:
+        return {"message": "Already expanded today."}
 
-@app.patch("/api/storage/volumes/{volume_uuid}")
-def update_volume(volume_uuid: str, body: VolumeUpdate):
-    for vol in db["volumes"]:
-        if vol["uuid"] == volume_uuid:
-            vol["size"] = body.size
-            return {"status": "updated", "volume": vol}
-    raise HTTPException(status_code=404, detail="Volume not found")
+    vol["total_gb"] += req.size_to_add
+    vol["last_expansion_day"] = today
+    vol["expansion_history"].append({"timestamp": datetime.now().isoformat(), "size": req.size_to_add})
+
+    return {"message": f"Expanded by {req.size_to_add}GB", "new_total": vol["total_gb"]}
+
+@app.get("/monitor")
+def get_monitor_data():
+    df = pd.read_csv("usage_log.csv")
+    return {
+        "timestamps": df["timestamp"].tolist(),
+        "used_gb": df["used_gb"].tolist(),
+        "total_gb": volume_state["vol-001"]["total_gb"],
+        "threshold": 0.8 * volume_state["vol-001"]["total_gb"],
+        "expansion_events": volume_state["vol-001"]["expansion_history"],
+        "last_expansion_day": str(volume_state["vol-001"]["last_expansion_day"])
+    }
